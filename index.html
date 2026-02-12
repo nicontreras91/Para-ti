@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Para Ti ❤️</title>
+
+  <style>
+    :root{
+      --bg: #f6efe9;
+      --ink: #2b2b2b;
+      --muted: #5a5a5a;
+      --accent: #b1152e;
+      --panel: rgba(255,255,255,0.55);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      background: var(--bg);
+      overflow:hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+    }
+
+    canvas{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      display:block;
+      z-index: 1;
+      pointer-events:none;
+    }
+
+    .ui{
+      position:fixed;
+      inset:0;
+      padding: env(safe-area-inset-top) 18px env(safe-area-inset-bottom) 18px;
+      pointer-events:auto;
+      z-index: 2;
+    }
+
+    /* =========================
+       START + CTA (latido)
+       ========================= */
+    .start{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      z-index: 10;
+      pointer-events:auto;
+    }
+
+    .start-btn{
+      border:0;
+      background: transparent;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size: 20px;
+      color: var(--accent);
+      font-weight: 800;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+
+      position: relative;
+      transform-origin: center;
+      animation: invitePulse 1.2s ease-in-out infinite;
+    }
+
+    .start-heart{
+      font-size: 34px;
+      transform: translateY(-1px);
+      animation: heartBeat 1.2s ease-in-out infinite;
+    }
+
+    .start-text{
+      position:relative;
+      padding-bottom: 4px;
+    }
+
+    .start-text::after{
+      content:"";
+      position:absolute;
+      left:0; right:0; bottom:0;
+      height:2px;
+      background: var(--accent);
+      transform: scaleX(.98);
+      transform-origin:left;
+      animation: underlineGlow 1.2s ease-in-out infinite;
+    }
+
+    @media (hover:hover){
+      .start-btn:hover{ transform: scale(1.05); }
+    }
+    .start-btn:active{ transform: scale(0.97); }
+
+    .start.stop-anim .start-btn,
+    .start.stop-anim .start-heart,
+    .start.stop-anim .start-text::after{
+      animation: none !important;
+    }
+
+    @keyframes invitePulse{
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(177,21,46,0)); }
+      45%      { transform: scale(1.03); filter: drop-shadow(0 10px 18px rgba(177,21,46,0.18)); }
+      60%      { transform: scale(0.995); }
+    }
+    @keyframes heartBeat{
+      0%, 100% { transform: translateY(-1px) scale(1); }
+      45%      { transform: translateY(-1px) scale(1.18); }
+      60%      { transform: translateY(-1px) scale(0.98); }
+    }
+    @keyframes underlineGlow{
+      0%, 100% { opacity: .70; transform: scaleX(.92); }
+      45%      { opacity: 1;   transform: scaleX(1);   }
+      60%      { opacity: .85; transform: scaleX(.96); }
+    }
+
+    /* =========================
+       APP-LIKE TRANSITION LAYER
+       (scrim + heart wipe)
+       ========================= */
+    .heartFX{
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transition: opacity 140ms linear;
+    }
+    .heartFX.show{ opacity: 1; }
+
+    /* ✅ Scrim: “pantalla” que hace cross-fade, tipo app */
+    .heartFX .scrim{
+      position:absolute;
+      inset:0;
+      background: var(--bg);
+      opacity: 0;
+      will-change: opacity;
+    }
+
+    /* ✅ Corazón */
+    .heartFX .heart{
+      position: relative;
+      z-index: 2;
+      font-size: clamp(90px, 16vw, 150px);
+      line-height: 1;
+      color: var(--accent);
+      transform: scale(0.86);
+      filter: blur(0px);
+      opacity: 1;
+      text-shadow: 0 18px 50px rgba(177,21,46,0.18);
+      will-change: transform, filter, opacity;
+    }
+
+    /* Animación corazón: más lenta y con fade */
+    @keyframes heartWipe {
+      0%   { transform: scale(0.9);  filter: blur(0px);  opacity: 1; }
+      18%  { transform: scale(1.08); filter: blur(0px);  opacity: 1; }
+      45%  { transform: scale(16);   filter: blur(0px);  opacity: 1; }   /* cubre pantalla */
+      70%  { transform: scale(20);   filter: blur(6px);  opacity: 0.55; }
+      100% { transform: scale(24);   filter: blur(14px); opacity: 0; }
+    }
+
+    /* ✅ Scrim cross-fade: aparece y luego se desvanece */
+    @keyframes scrimFade {
+      0%   { opacity: 0; }
+      20%  { opacity: 0.0; }
+      45%  { opacity: 1; }    /* cuando corazón cubre, el fondo “se vuelve app” */
+      85%  { opacity: 1; }
+      100% { opacity: 0; }    /* deja ver lo nuevo */
+    }
+
+    /* Duración total “app-like” */
+    .heartFX.go .heart{
+      animation: heartWipe 1800ms cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .heartFX.go .scrim{
+      animation: scrimFade 1800ms cubic-bezier(.2,.8,.2,1) forwards;
+    }
+
+    /* =========================
+       LETTER PANEL (scroll)
+       ========================= */
+    .letter{
+      position:absolute;
+      left: 18px;
+      top: calc(env(safe-area-inset-top) + 18px);
+      width: min(560px, 66vw);
+      max-width: 92vw;
+
+      height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 150px);
+      overflow: hidden;
+
+      z-index: 3;
+      display:none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .45s ease, transform .45s ease;
+      pointer-events:auto;
+    }
+    .letter.show{
+      display:block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .letter .content{
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+
+      padding: 14px 16px 16px;
+      border-radius: 14px;
+      background: var(--panel);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.10);
+
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+
+    .title{
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 10px 0;
+      color: #3a3a3a;
+    }
+    .typed{
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      color: #3a3a3a;
+      display:block;
+    }
+    .cursor{
+      display:inline-block;
+      margin-left: 2px;
+      color:#3a3a3a;
+      animation: blink .9s steps(1) infinite;
+    }
+    @keyframes blink{ 50%{ opacity:0; } }
+
+    .letter .content::-webkit-scrollbar{ width: 8px; }
+    .letter .content::-webkit-scrollbar-thumb{
+      background: rgba(0,0,0,0.16);
+      border-radius: 8px;
+    }
+
+    /* =========================
+       COUNTER (footer)
+       ========================= */
+    .counter{
+      position:absolute;
+      left: 18px;
+      bottom: calc(env(safe-area-inset-bottom) + 16px);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .45s ease, transform .45s ease;
+      z-index: 3;
+      pointer-events:none;
+    }
+    .counter.show{ opacity: 1; transform: translateY(0); }
+    .counter .label{ font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .counter .time{ font-size: 14px; font-weight: 900; letter-spacing: .2px; color: var(--ink); }
+
+    @media (max-width: 720px){
+      .letter{ width: calc(100vw - 36px); }
+      .letter{ height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 165px); }
+      .counter .time{ font-size: 13px; }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="c"></canvas>
+
+  <!-- ✅ App-like transition layer -->
+  <div id="heartFX" class="heartFX" aria-hidden="true">
+    <div class="scrim"></div>
+    <div class="heart">❤</div>
+  </div>
+
+  <div class="ui">
+    <div id="start" class="start">
+      <button id="startBtn" class="start-btn" aria-label="San Valentín" type="button">
+        <span class="start-heart">❤</span>
+        <span class="start-text">Eres todo lo que siempre soñé</span>
+      </button>
+    </div>
+
+    <div id="letter" class="letter">
+      <div class="content">
+        <div class="title">Para el amor de mi vida:</div>
+        <div><span id="typed" class="typed"></span><span class="cursor">_</span></div>
+      </div>
+    </div>
+
+    <div id="counter" class="counter">
+      <div class="label">Mi amor por ti comenzó hace...</div>
+      <div id="time" class="time">—</div>
+    </div>
+  </div>
+
+  <script>
+    // 07/feb/2025 13:00 hora local
+    const LOVE_START = new Date(2025, 1, 7, 13, 0, 0);
+
+    const LINES = [
+`Capítulo 1:
+
+Hoy me di cuenta de algo: desde que estás en mi vida, muchas cosas que antes parecían “un día más” ahora tienen brillo. No porque el mundo haya cambiado… sino porque tú cambiaste mi forma de vivirlo. Me haces sentir que todo puede ser más amable. Que el cansancio pesa menos. Que incluso los días difíciles tienen un rincón donde respirar.
+
+Me encanta cómo existes: cómo miras, cómo hablas, cómo te ríes, cómo apareces en mi cabeza cuando estoy lejos. Me encanta que tu cariño se sienta como hogar, no como pregunta. Me encanta que tu presencia no exija, sino que acompañe. Que estés, simplemente estés… y eso baste para que mi corazón se ordene.
+
+Y ahora que nuestro bebé viene en camino, siento que mi amor por ti se volvió todavía más profundo, más puro, más protector. Me nace cuidarte de verdad: cuidarte el corazón, cuidarte la calma, cuidarte los días. Quiero que te sientas segura, acompañada y querida en cada etapa, incluso cuando el cuerpo se canse, cuando la mente se llene de cosas, o cuando aparezcan miedos normales de este momento. Estoy aquí. Estoy contigo. Y no solo “para ayudarte”, sino para sostenerte, para abrazarte fuerte y para recordarte que no estás sola en nada.
+
+Me emociona pensar que en septiembre vamos a mirar a nuestro bebé y todo va a tener sentido de una forma nueva. Me imagino ese día como un antes y un después: como si el amor tomara forma, como si la vida nos dijera “esto es”. Y quiero que sepas algo: voy a proteger este hogar que estamos construyendo. Voy a protegerte a ti, voy a proteger a nuestro bebé, y voy a cuidar lo que somos con paciencia, con presencia y con amor limpio. Del que no se luce, pero se nota. Del que no promete cosas gigantes, pero cumple todos los días.
+
+No te prometo perfección, pero sí verdad. Te prometo estar, elegirte, cuidarte en los detalles: en lo que se dice y en lo que no se dice. En los días con energía y en los días en que solo queda abrazarse y esperar que pase. Te prometo que tu amor no va a ser un “cuando se pueda”, sino un “siempre que lo necesites”.
+
+Si el amor se mide en cosas pequeñas, entonces yo soy millonario contigo: en conversaciones que se alargan, en miradas que entienden, en planes improvisados, en esa sensación de “aquí sí”.
+
+Gracias por ser mi suerte bonita. Gracias por quererme así. Y si me preguntas qué quiero… quiero seguir sumando días contigo. Uno por uno. Como quien construye algo que vale de verdad.
+
+Te amo Valentina Inostroza. Hoy y siempre!.`
+    ];
+
+    const SPAWN_EVERY_MS = 85;
+    const TEXT_START_DELAY_MS = 600; // acompaña el wipe largo
+    const WIND_MIN = -70;
+    const WIND_MAX = -25;
+
+    const startOverlay = document.getElementById("start");
+    const startBtn = document.getElementById("startBtn");
+    const letter = document.getElementById("letter");
+    const typedEl = document.getElementById("typed");
+    const counterBox = document.getElementById("counter");
+    const timeEl = document.getElementById("time");
+    const heartFX = document.getElementById("heartFX");
+
+    function rand(a,b){ return a + Math.random()*(b-a); }
+    function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+
+    function pastelHeartColor() {
+      const pick = Math.random();
+      let hue = pick < 0.8 ? rand(345, 360) : rand(0, 12);
+      const sat = rand(55, 75);
+      const light = rand(64, 82);
+      return `hsl(${hue} ${sat}% ${light}%)`;
+    }
+
+    // Counter
+    const pad = (n) => String(n).padStart(2, "0");
+    function diffToParts(from, to) {
+      let ms = Math.max(0, to - from);
+      const sec = Math.floor(ms / 1000);
+      const days = Math.floor(sec / 86400);
+      const hours = Math.floor((sec % 86400) / 3600);
+      const mins = Math.floor((sec % 3600) / 60);
+      const secs = sec % 60;
+      return { days, hours, mins, secs };
+    }
+    function renderCounter() {
+      const { days, hours, mins, secs } = diffToParts(LOVE_START, new Date());
+      timeEl.textContent = `${days} días ${pad(hours)} horas ${pad(mins)} minutos ${pad(secs)} segundos`;
+    }
+
+    // Typewriter
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    async function typeLines(lines){
+      typedEl.textContent = "";
+      if (!lines || lines.length === 0) return;
+
+      for (let i=0;i<lines.length;i++){
+        const t = lines[i];
+        for (let k=0;k<t.length;k++){
+          typedEl.textContent += t[k];
+
+          const ch = t[k];
+          let base = 14; // sube para más lento
+          if (ch === ",") base += 80;
+          if (ch === "." || ch === "!" || ch === "?") base += 180;
+          if (ch === "\n") base += 220;
+
+          await sleep(base);
+        }
+        await sleep(200);
+      }
+    }
+
+    // Canvas
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+
+    let W=0, H=0, DPR=1;
+    function resize(){
+      DPR = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function drawHeart(x,y,size,rot,color,alpha=1){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(rot);
+      ctx.globalAlpha = alpha;
+      ctx.scale(size/18, size/18);
+      ctx.beginPath();
+      ctx.moveTo(0, 6);
+      ctx.bezierCurveTo(0, -2, -10, -2, -10, 6);
+      ctx.bezierCurveTo(-10, 12, -2, 16, 0, 18);
+      ctx.bezierCurveTo(2, 16, 10, 12, 10, 6);
+      ctx.bezierCurveTo(10, -2, 0, -2, 0, 6);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.shadowColor = "rgba(0,0,0,0.10)";
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    let started = false;
+    let hearts = [];
+    let spawnAcc = 0;
+
+    function spawnHeart(){
+      const size = rand(8, 16);
+      hearts.push({
+        x: rand(-W*0.05, W*1.05),
+        y: rand(-90, -12),
+        vx: rand(WIND_MIN, WIND_MAX) + rand(-8, 8),
+        vy: rand(45, 110),
+        g: rand(45, 95),
+        rot: rand(-1.2, 1.2),
+        vr: rand(-2.2, 2.2),
+        s: size,
+        col: pastelHeartColor(),
+        t: 0,
+        life: rand(4.0, 7.0)
+      });
+    }
+
+    let last = performance.now();
+    function loop(now){
+      const dt = Math.min(0.033, (now - last)/1000);
+      last = now;
+
+      ctx.clearRect(0,0,W,H);
+
+      if (started){
+        spawnAcc += dt*1000;
+        while (spawnAcc >= SPAWN_EVERY_MS){
+          spawnAcc -= SPAWN_EVERY_MS;
+          spawnHeart();
+          if (Math.random() < 0.35) spawnHeart();
+        }
+
+        for (let i=hearts.length-1;i>=0;i--){
+          const h = hearts[i];
+          h.t += dt;
+
+          h.vy += h.g * dt;
+          h.x += h.vx * dt;
+          h.y += h.vy * dt;
+          h.rot += h.vr * dt;
+          h.x += Math.sin((now/220) + i) * 0.8;
+
+          const alpha = clamp(1 - h.t / h.life, 0, 1);
+          drawHeart(h.x, h.y, h.s, h.rot, h.col, alpha);
+
+          if (h.y > H + 40 || h.x < -140 || alpha <= 0.02){
+            hearts.splice(i,1);
+          }
+        }
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function startSceneAfterWipe(){
+      started = true;
+
+      counterBox.classList.add("show");
+      renderCounter();
+      setInterval(renderCounter, 1000);
+
+      setTimeout(() => letter.classList.add("show"), TEXT_START_DELAY_MS);
+      setTimeout(() => typeLines(LINES), TEXT_START_DELAY_MS + 200);
+    }
+
+    function startScene(){
+      if (started) return;
+
+      heartFX.classList.add("show");
+      heartFX.classList.add("go");
+
+      startOverlay.classList.add("stop-anim");
+
+      // ✅ aparece lo nuevo cuando el scrim ya cubrió (45% de 1800 ≈ 810ms)
+      setTimeout(() => {
+        startOverlay.style.display = "none";
+        startSceneAfterWipe();
+      }, 820);
+
+      // ✅ quitar overlay al final de todo
+      setTimeout(() => {
+        heartFX.classList.remove("show");
+        heartFX.classList.remove("go");
+      }, 1860);
+    }
+
+    startBtn.addEventListener("click", (e) => { e.preventDefault(); startScene(); });
+    startBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startScene(); }, { passive:false });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") location.reload();
+    });
+  </script>
+</body>
+</html>
