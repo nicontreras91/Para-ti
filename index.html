@@ -3,7 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Para Ti Valentina❤️</title>
+  <title>Para Ti ❤️</title>
+
+  <!-- Para que al "Agregar a pantalla de inicio" se sienta más app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f6efe9">
 
   <style>
     :root{
@@ -137,7 +142,6 @@
     }
     .heartFX.show{ opacity: 1; }
 
-    /* ✅ Scrim: “pantalla” que hace cross-fade, tipo app */
     .heartFX .scrim{
       position:absolute;
       inset:0;
@@ -146,7 +150,6 @@
       will-change: opacity;
     }
 
-    /* ✅ Corazón */
     .heartFX .heart{
       position: relative;
       z-index: 2;
@@ -160,25 +163,22 @@
       will-change: transform, filter, opacity;
     }
 
-    /* Animación corazón: más lenta y con fade */
     @keyframes heartWipe {
       0%   { transform: scale(0.9);  filter: blur(0px);  opacity: 1; }
       18%  { transform: scale(1.08); filter: blur(0px);  opacity: 1; }
-      45%  { transform: scale(16);   filter: blur(0px);  opacity: 1; }   /* cubre pantalla */
+      45%  { transform: scale(16);   filter: blur(0px);  opacity: 1; }
       70%  { transform: scale(20);   filter: blur(6px);  opacity: 0.55; }
       100% { transform: scale(24);   filter: blur(14px); opacity: 0; }
     }
 
-    /* ✅ Scrim cross-fade: aparece y luego se desvanece */
     @keyframes scrimFade {
       0%   { opacity: 0; }
-      20%  { opacity: 0.0; }
-      45%  { opacity: 1; }    /* cuando corazón cubre, el fondo “se vuelve app” */
+      20%  { opacity: 0; }
+      45%  { opacity: 1; }
       85%  { opacity: 1; }
-      100% { opacity: 0; }    /* deja ver lo nuevo */
+      100% { opacity: 0; }
     }
 
-    /* Duración total “app-like” */
     .heartFX.go .heart{
       animation: heartWipe 1800ms cubic-bezier(.2,.8,.2,1) forwards;
     }
@@ -283,6 +283,11 @@
 <body>
   <canvas id="c"></canvas>
 
+  <!-- 🎵 Música: sube tu archivo como song.mp3 en el mismo lugar que index.html -->
+  <audio id="bgm" preload="auto" loop>
+    <source src="song.mp3" type="audio/mpeg">
+  </audio>
+
   <!-- ✅ App-like transition layer -->
   <div id="heartFX" class="heartFX" aria-hidden="true">
     <div class="scrim"></div>
@@ -293,7 +298,7 @@
     <div id="start" class="start">
       <button id="startBtn" class="start-btn" aria-label="San Valentín" type="button">
         <span class="start-heart">❤</span>
-        <span class="start-text">Eres todo lo que siempre soñé</span>
+        <span class="start-text">San Valentín</span>
       </button>
     </div>
 
@@ -314,8 +319,9 @@
     // 07/feb/2025 13:00 hora local
     const LOVE_START = new Date(2025, 1, 7, 13, 0, 0);
 
+    // Texto (un bloque)
     const LINES = [
-`Capítulo 1:
+`Mi amor,
 
 Hoy me di cuenta de algo: desde que estás en mi vida, muchas cosas que antes parecían “un día más” ahora tienen brillo. No porque el mundo haya cambiado… sino porque tú cambiaste mi forma de vivirlo. Me haces sentir que todo puede ser más amable. Que el cansancio pesa menos. Que incluso los días difíciles tienen un rincón donde respirar.
 
@@ -331,14 +337,16 @@ Si el amor se mide en cosas pequeñas, entonces yo soy millonario contigo: en co
 
 Gracias por ser mi suerte bonita. Gracias por quererme así. Y si me preguntas qué quiero… quiero seguir sumando días contigo. Uno por uno. Como quien construye algo que vale de verdad.
 
-Te amo Valentina Inostroza. Hoy y siempre!.`
+Te amo.`
     ];
 
+    // Ajustes
     const SPAWN_EVERY_MS = 85;
-    const TEXT_START_DELAY_MS = 600; // acompaña el wipe largo
+    const TEXT_START_DELAY_MS = 600; // acompaña wipe largo
     const WIND_MIN = -70;
     const WIND_MAX = -25;
 
+    // DOM
     const startOverlay = document.getElementById("start");
     const startBtn = document.getElementById("startBtn");
     const letter = document.getElementById("letter");
@@ -346,7 +354,9 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
     const counterBox = document.getElementById("counter");
     const timeEl = document.getElementById("time");
     const heartFX = document.getElementById("heartFX");
+    const bgm = document.getElementById("bgm");
 
+    // Utils
     function rand(a,b){ return a + Math.random()*(b-a); }
     function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 
@@ -356,6 +366,23 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
       const sat = rand(55, 75);
       const light = rand(64, 82);
       return `hsl(${hue} ${sat}% ${light}%)`;
+    }
+
+    // 🎵 Música (fade-in suave)
+    async function playMusic(){
+      if (!bgm) return;
+      try{
+        bgm.volume = 0;
+        await bgm.play(); // iPhone: requiere gesto -> lo llamamos desde el click
+        const target = 0.65;
+        const step = 0.02;
+        const t = setInterval(() => {
+          bgm.volume = Math.min(target, bgm.volume + step);
+          if (bgm.volume >= target) clearInterval(t);
+        }, 60);
+      }catch(e){
+        // Si el audio no puede reproducirse, no rompemos nada.
+      }
     }
 
     // Counter
@@ -374,7 +401,7 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
       timeEl.textContent = `${days} días ${pad(hours)} horas ${pad(mins)} minutos ${pad(secs)} segundos`;
     }
 
-    // Typewriter
+    // Typewriter (sube base para más lento)
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     async function typeLines(lines){
       typedEl.textContent = "";
@@ -386,7 +413,7 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
           typedEl.textContent += t[k];
 
           const ch = t[k];
-          let base = 14; // sube para más lento
+          let base = 14; // ✅ velocidad (sube a 18–22 para más lento)
           if (ch === ",") base += 80;
           if (ch === "." || ch === "!" || ch === "?") base += 180;
           if (ch === "\n") base += 220;
@@ -435,6 +462,7 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
       ctx.restore();
     }
 
+    // Corazones
     let started = false;
     let hearts = [];
     let spawnAcc = 0;
@@ -494,6 +522,7 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
     }
     requestAnimationFrame(loop);
 
+    // Start sequence
     function startSceneAfterWipe(){
       started = true;
 
@@ -508,18 +537,22 @@ Te amo Valentina Inostroza. Hoy y siempre!.`
     function startScene(){
       if (started) return;
 
+      // 🎵 inicia música (Safari requiere gesto)
+      playMusic();
+
+      // transición tipo app
       heartFX.classList.add("show");
       heartFX.classList.add("go");
 
       startOverlay.classList.add("stop-anim");
 
-      // ✅ aparece lo nuevo cuando el scrim ya cubrió (45% de 1800 ≈ 810ms)
+      // cuando el scrim ya cubrió (45% de 1800 ≈ 810ms)
       setTimeout(() => {
         startOverlay.style.display = "none";
         startSceneAfterWipe();
       }, 820);
 
-      // ✅ quitar overlay al final de todo
+      // quitar overlay al final
       setTimeout(() => {
         heartFX.classList.remove("show");
         heartFX.classList.remove("go");
